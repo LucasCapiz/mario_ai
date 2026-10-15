@@ -1,3 +1,5 @@
+<img width="417" height="269" alt="_MConverter eu_mario_ai_video_1-1 (2) (2) (1)" src="https://github.com/user-attachments/assets/1234ae7e-a3be-4225-ac93-e81b8da94f27" />
+
 # Super Mario Bros AI: Mastering Level 1-1 with PPO
 
 ### Overview
