@@ -7,7 +7,7 @@ from stable_baselines3.common.vec_env import DummyVecEnv, VecFrameStack
 from stable_baselines3 import PPO
 
 # ==========================================
-# WRAPPER DE EVALUACIÓN (Sin Max Pooling)
+# EVALUATION WRAPPER (No Max Pooling)
 # ==========================================
 class MarioEvalWrapper(gym.Wrapper):
     def __init__(self, env, skip=4):
@@ -17,7 +17,7 @@ class MarioEvalWrapper(gym.Wrapper):
     def reset(self, **kwargs):
         obs = self.env.reset()
         
-        # Manejo de la tupla de compatibilidad
+        # Handle Gym backwards compatibility (tuple unwrapping)
         if isinstance(obs, tuple):
             obs, reset_info = obs
         else:
@@ -31,7 +31,7 @@ class MarioEvalWrapper(gym.Wrapper):
         done = False
         info = {}
         
-        # Salto de fotogramas con renderización en tiempo real
+        # Apply frame skipping while rendering each frame in real-time
         for _ in range(self._skip):
             obs, reward, done, info = self.env.step(action)
             total_reward += reward
@@ -40,11 +40,11 @@ class MarioEvalWrapper(gym.Wrapper):
             if done:
                 break
                 
-        # Devolvemos directamente el último fotograma sin fusionar
+        # Return the last frame directly without merging
         return obs, total_reward, done, False, info
 
 # ==========================================
-# CONSTRUCCIÓN DEL ENTORNO
+# ENVIRONMENT SETUP
 # ==========================================
 env = gym_super_mario_bros.make('SuperMarioBros-v0')
 env = JoypadSpace(env, SIMPLE_MOVEMENT)
@@ -55,20 +55,18 @@ env = DummyVecEnv([lambda: env])
 env = VecFrameStack(env, n_stack=4)
 
 # ==========================================
-# CARGA DEL MODELO Y EJECUCIÓN
+# MODEL LOADING & EXECUTION
 # ==========================================
 model_path = "./mario_models/15-09_model_3252000_steps"
-print(f"Cargando modelo desde {model_path}...")
+print(f"Loading model from {model_path}...")
 model = PPO.load(model_path, env=env)
 
 obs = env.reset()
-print("Iniciando evaluación. Cierra la ventana para detener.")
+print("Starting evaluation. Close the window to stop.")
 
 while True:
-    # deterministic=True obliga a la IA a usar su estrategia aprendida sin azar
+    # deterministic=True forces the agent to exploit its learned policy rather than taking random actions
     action, _ = model.predict(obs, deterministic=True)
     obs, reward, done, info = env.step(action)
 
 env.close()
-
-# 1.4 m 1.565m 1.86m
