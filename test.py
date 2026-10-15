@@ -57,7 +57,7 @@ env = VecFrameStack(env, n_stack=4)
 # ==========================================
 # MODEL LOADING & EXECUTION
 # ==========================================
-model_path = "./mario_models/15-09_model_3252000_steps"
+model_path = "./15-09_model_3252000_steps"
 print(f"Loading model from {model_path}...")
 model = PPO.load(model_path, env=env)
 
