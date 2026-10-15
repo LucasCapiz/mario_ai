@@ -21,6 +21,7 @@ This project trains a Reinforcement Learning (RL) agent to play and beat *Super 
 *   **Phase 3:** Implement Curriculum Learning and Random Stage initialization (`SuperMarioBrosRandomStages-v0`) for zero-shot level completion.
 
 <p align="center">
+  <br>
   <img width="417" height="269" alt="_MConverter eu_mario_ai_video_1-1 (2) (2) (1)" src="https://github.com/user-attachments/assets/1234ae7e-a3be-4225-ac93-e81b8da94f27" />
   <br>
   <em>PPO Agent mastering Super Mario Bros World 1-1</em>
