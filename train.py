@@ -5,22 +5,21 @@ from nes_py.wrappers import JoypadSpace
 from gym_super_mario_bros.actions import SIMPLE_MOVEMENT
 from gym.wrappers import GrayScaleObservation, ResizeObservation
 from stable_baselines3.common.vec_env import SubprocVecEnv, VecFrameStack, VecMonitor
-# from stable_baselines3.common.callbacks import CheckpointCallback
 from stable_baselines3.common.callbacks import BaseCallback, CallbackList, CheckpointCallback
 from stable_baselines3 import PPO
 import numpy as np
 
-# Envoltorio (Wrapper) para adaptar la compatibilidad de variables y aplicar Frame Skip
+# Custom Wrapper to handle environment compatibility and apply Frame Skip
 class CustomEnvWrapper(gym.Wrapper):
     def __init__(self, env, skip=4):
         super().__init__(env)
         self._skip = skip
         
     def reset(self, **kwargs):
-        # Reinicio clasico del entorno
+        # Standard environment reset
         obs = self.env.reset()
         
-        # Manejo seguro de la tupla de compatibilidad de Gym
+        # Handle Gym backwards compatibility (tuple unwrapping)
         if isinstance(obs, tuple):
             obs, info = obs
         else:
@@ -33,19 +32,19 @@ class CustomEnvWrapper(gym.Wrapper):
         done = False
         info = {}
         
-        # Repetir la misma accion 'skip' veces para acelerar el aprendizaje (Frame Skip)
+        # Repeat the same action 'skip' times to accelerate learning (Frame Skipping)
         for _ in range(self._skip):
             obs, reward, done, info = self.env.step(action)
             total_reward += reward
             if done:
                 break
         
-        # Moldeado de recompensas (Reward Shaping):
-        # Penalizar levemente si el agente se queda quieto o atascado en un obstaculo
+        # Reward Shaping:
+        # Apply a small penalty if the agent stands still or gets stuck
         if total_reward <= 0:
             total_reward -= 0.1
             
-        # Devolver los 5 valores esperados por la API de Gym requerida por PPO
+        # Return the standard 5 values expected by the Gym API for SB3
         return obs, total_reward, done, False, info
 
 class DistanceTrackingCallback(BaseCallback):
@@ -54,86 +53,75 @@ class DistanceTrackingCallback(BaseCallback):
         self.episode_distances = []
 
     def _on_step(self) -> bool:
-        # Revisa la información de los entornos vectorizados en cada paso
+        # Check the info dict from the vectorized environments at each step
         for info in self.locals.get("infos", []):
             if "x_pos" in info:
-                # Si el jugador muere o llega a la bandera, guardamos su x_pos final
+                # If the agent dies or finishes the level, record the final x_pos
                 if "terminal_observation" in info:
                     self.episode_distances.append(info["x_pos"])
         return True
 
     def _on_rollout_end(self) -> None:
-        # Se ejecuta cada vez que el PPO actualiza sus redes (ej. cada n_steps * num_envs)
+        # Triggered every time PPO updates its policy (i.e., after rollout collection)
         if len(self.episode_distances) > 0:
             average = np.mean(self.episode_distances)
             maximum = np.max(self.episode_distances)
             
-            # Escribe las métricas en TensorBoard bajo la pestaña "custom"
+            # Log the metrics to TensorBoard under the "custom" tab
             self.logger.record("custom/average_distance", average)
             self.logger.record("custom/maximum_distance", maximum)
             
-            # Limpiamos para el próximo ciclo
+            # Clear the buffer for the next rollout
             self.episode_distances = []
             
-# Funcion constructora necesaria para instanciar entornos independientes en cada CPU
+# Environment factory function required for multiprocessing
 def make_env():
     def _init():
-        # 1. Creacion del entorno base
+        # 1. Create the base environment
         env = gym_super_mario_bros.make('SuperMarioBros-v0')
         env = JoypadSpace(env, SIMPLE_MOVEMENT)
 
-        # 2. Preprocesamiento de imagenes
+        # 2. Image preprocessing
         env = GrayScaleObservation(env, keep_dim=True)
         env = ResizeObservation(env, shape=84)
 
-        # 3. Aplicacion del wrapper personalizado
+        # 3. Apply the custom wrapper
         env = CustomEnvWrapper(env)
         return env
     return _init
 
-# Bloque principal obligatorio para multiprocesamiento seguro en Python
+# Main block strictly required for safe multiprocessing in Python
 if __name__ == '__main__':
     save_dir = "./mario_models/"
     os.makedirs(save_dir, exist_ok=True)
 
-    # 4. Vectorizacion para el algoritmo con multiples CPUs
+    # 4. Vectorize the environment across multiple CPUs
     num_cpu = 10
     env = SubprocVecEnv([make_env() for i in range(num_cpu)])
     env = VecFrameStack(env, n_stack=4)
 
-    # 5. Monitor para registrar metricas en TensorBoard adaptado a entornos vectorizados
+    # 5. Monitor to track metrics in TensorBoard for vectorized environments
     env = VecMonitor(env)
 
     total_timesteps = 500000
-    base_model_path = "./mario_models/14-09_model_2832000_steps"
+    base_model_path = "./14-09_model_2832000_steps"
 
-    print("--- Iniciando entrenamiento con {} CPUs ---".format(num_cpu))
-
-    # Mantenemos los hiperparametros solicitados en un diccionario 
-    # para forzarlos al cargar el modelo existente
-    # custom_objects = {
-    #     "learning_rate": 0.0001,
-    #     "ent_coef": 0.0001,
-    #     "n_steps": 1024,
-    #     "batch_size": 1024
-    # }
+    print("--- Starting training across {} CPUs ---".format(num_cpu))
 
     CHECK_FREQ_NUMB = 10000
     TOTAL_TIMESTEP_NUMB = 5000000
     LEARNING_RATE = 0.0001
     GAE = 1.0 
-    # 0.95
     ENT_COEF = 0.01
     N_STEPS = 512
     GAMMA = 0.9
-    # gamma 0.99
     BATCH_SIZE = 64
     N_EPOCHS = 10
 
-    # Mapeamos tus constantes al diccionario que PPO requiere
+    # Map the constants to the exact dictionary keys expected by PPO
     custom_objects = {
         "learning_rate": LEARNING_RATE,
-        "gae_lambda": GAE,          # En SB3 el parámetro se llama gae_lambda
+        "gae_lambda": GAE,
         "ent_coef": ENT_COEF,
         "n_steps": N_STEPS,
         "gamma": GAMMA,
@@ -141,9 +129,9 @@ if __name__ == '__main__':
         "n_epochs": N_EPOCHS
     }
 
-    print(f"Cargando modelo base: {base_model_path}")
+    print(f"Loading base model from: {base_model_path}")
     
-    # Carga del modelo previamente entrenado aplicando los parametros actuales
+    # Load the pre-trained model and override with the current parameters
     model = PPO.load(
         base_model_path,
         env=env,
@@ -151,31 +139,31 @@ if __name__ == '__main__':
         tensorboard_log="./tensorboard_logs/"
     )
 
-    # Configuracion de guardado automatico (checkpoints) actualizados al nuevo dia
+    # Configure automatic saving (checkpoints)
     checkpoint_callback = CheckpointCallback(
         save_freq=2000,
         save_path=save_dir,
         name_prefix="15-09_model"
     )
 
-    # Inicializamos nuestro tracker de distancia
+    # Initialize the custom distance tracker
     distance_callback = DistanceTrackingCallback()
 
-    # Agrupamos ambos callbacks
+    # Group the callbacks into a list
     callback_list = CallbackList([checkpoint_callback, distance_callback])
 
-    # Entrenamiento del modelo
+    # Start training
     model.learn(
         total_timesteps=total_timesteps,
-        callback=callback_list,          # <-- Cambiamos esto para usar la lista
+        callback=callback_list,          # <-- Pass the callback list here
         tb_log_name='15-09_model_total',
         reset_num_timesteps=False
     )
     
-    # Guardar el modelo final de la ejecucion con el nuevo nombre
+    # Save the final model after the run completes
     final_model_path = os.path.join(save_dir, "15-09_model_final")
     model.save(final_model_path)
-    print(f"Modelo guardado exitosamente: {final_model_path}\n")
+    print(f"Model saved successfully: {final_model_path}\n")
 
-    # Cierre ordenado del entorno
+    # Cleanly close the environments
     env.close()
