@@ -1,5 +1,3 @@
-<img width="417" height="269" alt="_MConverter eu_mario_ai_video_1-1 (2) (2) (1)" src="https://github.com/user-attachments/assets/1234ae7e-a3be-4225-ac93-e81b8da94f27" />
-
 # Super Mario Bros AI: Mastering Level 1-1 with PPO
 
 ### Overview
@@ -18,6 +16,8 @@ This project trains a Reinforcement Learning (RL) agent to play and beat *Super 
 *   **Hyperparameter Tuning:** Fine-tuned critical PPO parameters including learning rate decay, entropy coefficient (to balance exploration vs. exploitation), batch size, and `n_steps` for optimal gradient updates.
 
 ### Current Progress & Roadmap
-*   ✅ **Phase 1:** Master World 1-1 (Completed - 100% Win Rate).
-*   🔄 **Phase 2:** Generalization across World 1. Currently transitioning the architecture to train on Worlds 1-1 through 1-4 simultaneously to prevent level-overfitting and develop universal platforming intelligence.
-*   🔜 **Phase 3:** Implement Curriculum Learning and Random Stage initialization (`SuperMarioBrosRandomStages-v0`) for zero-shot level completion.
+*   **Phase 1:** Master World 1-1 (Completed - 100% Win Rate).
+*   **Phase 2:** Generalization across World 1. Currently transitioning the architecture to train on Worlds 1-1 through 1-4 simultaneously to prevent level-overfitting and develop universal platforming intelligence.
+*   **Phase 3:** Implement Curriculum Learning and Random Stage initialization (`SuperMarioBrosRandomStages-v0`) for zero-shot level completion.
+
+<img width="417" height="269" alt="_MConverter eu_mario_ai_video_1-1 (2) (2) (1)" src="https://github.com/user-attachments/assets/1234ae7e-a3be-4225-ac93-e81b8da94f27" />
